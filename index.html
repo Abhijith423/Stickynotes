@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sticky Notes</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.3);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .add-btn {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .color-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            padding: 0;
+        }
+
+        .notes-container {
+            position: relative;
+            min-height: 400px;
+        }
+
+        .note {
+            position: absolute;
+            width: 250px;
+            min-height: 250px;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.3);
+            cursor: move;
+            transition: box-shadow 0.3s;
+        }
+
+        .note:hover {
+            box-shadow: 0 12px 24px rgba(0,0,0,0.4);
+        }
+
+        .note.dragging {
+            opacity: 0.7;
+            cursor: grabbing;
+        }
+
+        .note-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid rgba(0,0,0,0.1);
+        }
+
+        .note-actions {
+            display: flex;
+            gap: 5px;
+        }
+
+        .note-btn {
+            background: rgba(255,255,255,0.3);
+            border: none;
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+
+        .note-btn:hover {
+            background: rgba(255,255,255,0.5);
+        }
+
+        .delete-btn {
+            background: rgba(255,0,0,0.3);
+        }
+
+        .delete-btn:hover {
+            background: rgba(255,0,0,0.5);
+        }
+
+        .note-content {
+            width: 100%;
+            min-height: 180px;
+            background: transparent;
+            border: none;
+            resize: none;
+            font-family: 'Comic Sans MS', cursive;
+            font-size: 14px;
+            outline: none;
+            color: #333;
+        }
+
+        .timestamp {
+            font-size: 10px;
+            color: rgba(0,0,0,0.5);
+            margin-top: 10px;
+        }
+
+        .yellow { background: #FFF9C4; }
+        .pink { background: #F8BBD0; }
+        .blue { background: #BBDEFB; }
+        .green { background: #C8E6C9; }
+        .purple { background: #E1BEE7; }
+        .orange { background: #FFE0B2; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>📌 Sticky Notes</h1>
+        <p>Click and drag to move notes around</p>
+    </div>
+
+    <div class="controls">
+        <button class="btn add-btn" onclick="addNote()">+ Add Note</button>
+        <button class="color-btn yellow" onclick="setColor('yellow')" title="Yellow"></button>
+        <button class="color-btn pink" onclick="setColor('pink')" title="Pink"></button>
+        <button class="color-btn blue" onclick="setColor('blue')" title="Blue"></button>
+        <button class="color-btn green" onclick="setColor('green')" title="Green"></button>
+        <button class="color-btn purple" onclick="setColor('purple')" title="Purple"></button>
+        <button class="color-btn orange" onclick="setColor('orange')" title="Orange"></button>
+    </div>
+
+    <div class="notes-container" id="notesContainer"></div>
+
+    <script>
+        let notes = [];
+        let currentColor = 'yellow';
+        let draggedNote = null;
+        let offset = { x: 0, y: 0 };
+
+        function setColor(color) {
+            currentColor = color;
+        }
+
+        function addNote() {
+            const note = {
+                id: Date.now(),
+                content: '',
+                color: currentColor,
+                x: Math.random() * (window.innerWidth - 300) + 20,
+                y: Math.random() * 300 + 200,
+                timestamp: new Date().toLocaleString()
+            };
+            notes.push(note);
+            renderNotes();
+        }
+
+        function deleteNote(id) {
+            notes = notes.filter(n => n.id !== id);
+            renderNotes();
+        }
+
+        function updateNote(id, content) {
+            const note = notes.find(n => n.id === id);
+            if (note) {
+                note.content = content;
+            }
+        }
+
+        function changeNoteColor(id) {
+            const note = notes.find(n => n.id === id);
+            if (note) {
+                const colors = ['yellow', 'pink', 'blue', 'green', 'purple', 'orange'];
+                const currentIndex = colors.indexOf(note.color);
+                note.color = colors[(currentIndex + 1) % colors.length];
+                renderNotes();
+            }
+        }
+
+        function startDrag(e, id) {
+            draggedNote = notes.find(n => n.id === id);
+            const noteEl = e.target.closest('.note');
+            const rect = noteEl.getBoundingClientRect();
+            offset.x = e.clientX - rect.left;
+            offset.y = e.clientY - rect.top;
+            noteEl.classList.add('dragging');
+        }
+
+        function drag(e) {
+            if (!draggedNote) return;
+            e.preventDefault();
+            draggedNote.x = e.clientX - offset.x;
+            draggedNote.y = e.clientY - offset.y;
+            renderNotes();
+        }
+
+        function endDrag() {
+            if (draggedNote) {
+                const noteEl = document.querySelector('.dragging');
+                if (noteEl) noteEl.classList.remove('dragging');
+                draggedNote = null;
+            }
+        }
+
+        function renderNotes() {
+            const container = document.getElementById('notesContainer');
+            container.innerHTML = '';
+            
+            notes.forEach(note => {
+                const noteEl = document.createElement('div');
+                noteEl.className = `note ${note.color}`;
+                noteEl.style.left = note.x + 'px';
+                noteEl.style.top = note.y + 'px';
+                
+                noteEl.innerHTML = `
+                    <div class="note-header" onmousedown="startDrag(event, ${note.id})">
+                        <span>📝</span>
+                        <div class="note-actions">
+                            <button class="note-btn" onclick="changeNoteColor(${note.id})" title="Change Color">🎨</button>
+                            <button class="note-btn delete-btn" onclick="deleteNote(${note.id})" title="Delete">✕</button>
+                        </div>
+                    </div>
+                    <textarea 
+                        class="note-content" 
+                        placeholder="Write your note here..."
+                        oninput="updateNote(${note.id}, this.value)"
+                    >${note.content}</textarea>
+                    <div class="timestamp">${note.timestamp}</div>
+                `;
+                
+                container.appendChild(noteEl);
+            });
+        }
+
+        document.addEventListener('mousemove', drag);
+        document.addEventListener('mouseup', endDrag);
+
+        addNote();
+    </script>
+</body>
+</html>
